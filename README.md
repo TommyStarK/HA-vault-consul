@@ -1,12 +1,22 @@
 # HA-vault-consul
-High availability Vault using Consul as backend storage
+High availability Vault using Consul as backend storage.
 
 ## Prerequisites
 
 - [Docker](https://docs.docker.com)
 
-For MacOS, you must add the following path to your docker engine:
+## Disclaimer
 
-- `/var/lib/consul/data`
+The source code herein is not production ready. It is meant to understand, learn and manipulate Vault to manage secrets.
 
-This can be done through **Docker -> Peferences -> File Sharing**
+## Usage
+
+This docker-compose file aims to spawn easily an **High Availability** Vault using a Consul cluster as storage backend for
+**demo purposes only**.
+
+It is a simple implementation of the following guide:
+* https://learn.hashicorp.com/vault/operations/ops-vault-ha-consul
+
+```
+$ docker-compose up
+```
