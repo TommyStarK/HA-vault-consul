@@ -1,0 +1,145 @@
+version: "3"
+
+volumes:
+  consul_server_1:
+  consul_server_2:
+  consul_server_3:
+  consul_client_1:
+  consul_client_2:
+  consul_client_3:
+
+networks: 
+  network:
+
+services:
+
+  consul-server-1:
+    build:
+      context: .
+      args:
+        target_agent: server
+      dockerfile: Dockerfile-Consul
+    container_name: consul-server-1
+    hostname: consul-server-1
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul-server-1
+      - JOIN2=consul-server-2
+      - JOIN3=consul-server-3
+      - NODE_NAME=server-1
+    volumes:
+      - consul_server_1:/consul/data
+    networks: 
+      - network
+
+  consul-server-2:
+    build:
+      context: .
+      args:
+        target_agent: server
+      dockerfile: Dockerfile-Consul
+    container_name: consul-server-2
+    hostname: consul-server-2
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul-server-1
+      - JOIN2=consul-server-2
+      - JOIN3=consul-server-3
+      - NODE_NAME=server-2
+    volumes:
+      - consul_server_2:/consul/data
+    networks: 
+      - network
+
+  consul-server-3:
+    build:
+      context: .
+      args:
+        target_agent: server
+      dockerfile: Dockerfile-Consul
+    container_name: consul-server-3
+    hostname: consul-server-3
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul-server-1
+      - JOIN2=consul-server-2
+      - JOIN3=consul-server-3
+      - NODE_NAME=server-3
+    volumes:
+      - consul_server_3:/consul/data
+    networks: 
+      - network
+
+  consul-client-1:
+    build:
+      context: .
+      args:
+        target_agent: client
+      dockerfile: Dockerfile-Consul
+    container_name: consul-client-1
+    hostname: consul-client-1
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul-server-1
+      - JOIN2=consul-server-2
+      - JOIN3=consul-server-3
+      - NODE_NAME=client-1
+    volumes:
+      - consul_client_1:/consul/data
+    networks: 
+      - network
+
+  consul-client-2:
+    build:
+      context: .
+      args:
+        target_agent: client
+      dockerfile: Dockerfile-Consul
+    container_name: consul-client-2
+    hostname: consul-client-2
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul-server-1
+      - JOIN2=consul-server-2
+      - JOIN3=consul-server-3
+      - NODE_NAME=client-2
+    volumes:
+      - consul_client_2:/consul/data
+    networks: 
+      - network
+
+  consul-client-3:
+    build:
+      context: .
+      args:
+        target_agent: client
+      dockerfile: Dockerfile-Consul
+    container_name: consul-client-3
+    hostname: consul-client-3
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul-server-1
+      - JOIN2=consul-server-2
+      - JOIN3=consul-server-3
+      - NODE_NAME=client-3
+    volumes:
+      - consul_client_3:/consul/data
+    networks: 
+      - network
+
+  # vault:
+  #   build: vault/
+  #   container_name: vault
+  #   hostname: vault
+  #   command: ["./vault/tools/wait-for-it.sh", "consul:8500", "--", "vault", "server", "-config=/vault/config/vault.hcl", "--log-level=debug"]
+  #   depends_on:
+  #     - consul-server-bootstrap
+  #   cap_add:
+  #     - IPC_LOCK
+  #   environment:
+  #     - CONSUL_ADDR=consul
+  #     - VAULT_ADDR=http://127.0.0.1:8200
+  #     - VAULT_API_ADDR=http://127.0.0.1:8200/api
+  #   ports:
+  #     - "8125:8125"
+  #     - "8200:8200"

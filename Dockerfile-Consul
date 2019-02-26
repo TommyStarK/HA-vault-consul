@@ -1,0 +1,15 @@
+FROM consul:latest
+
+ARG target_agent=server
+
+ENV TARGET_AGENT ${target_agent}
+
+COPY ./tools/consul_agent_startup.sh /
+
+COPY ./consul-agent/${TARGET_AGENT}/config.json /consul/config_template.json
+
+RUN apk update && \
+    apk add bash && \
+    chmod +x /consul_agent_startup.sh
+
+CMD ["./consul_agent_startup.sh"]

@@ -1,0 +1,8 @@
+FROM vault:latest
+
+RUN apk update \
+    && apk add bash \
+    && mkdir -p /vault/config
+
+COPY ./config /vault/config/
+COPY ./tools /vault/tools

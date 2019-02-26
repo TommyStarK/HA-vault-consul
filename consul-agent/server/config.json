@@ -1,0 +1,15 @@
+{
+    "server": true,
+    "node_name": "${node_name}",
+    "datacenter": "${datacenter}",
+    "data_dir": "/consul/data",
+    "bind_addr": "0.0.0.0",
+    "client_addr": "0.0.0.0",
+    "advertise_addr": "${advertise_addr}",
+    "bootstrap_expect": 3,
+    "retry_join": ["${join1}", "${join2}", "${join3}"],
+    "ui": true,
+    "log_level": "DEBUG",
+    "enable_syslog": false,
+    "acl_enforce_version_8": false
+}
