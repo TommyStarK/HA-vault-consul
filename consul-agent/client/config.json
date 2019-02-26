@@ -1,12 +1,12 @@
 {
-  "server": false,
-  "node_name": "${node_name}",
-  "datacenter": "${datacenter}",
-  "data_dir": "/consul/data",
-  "bind_addr": "${bind_addr}",
-  "client_addr": "127.0.0.1",
-  "retry_join": ["${join1}", "${join2}", "${join3}"],
-  "log_level": "DEBUG",
-  "enable_syslog": false,
-  "acl_enforce_version_8": false
+    "server": false,
+    "node_name": "${node_name}",
+    "datacenter": "${datacenter}",
+    "data_dir": "/consul/data",
+    "bind_addr": "${bind_addr}",
+    "client_addr": "127.0.0.1",
+    "retry_join": ["${join1}", "${join2}", "${join3}"],
+    "log_level": "DEBUG",
+    "enable_syslog": false,
+    "acl_enforce_version_8": false
 }
