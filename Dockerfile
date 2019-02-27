@@ -1,14 +1,11 @@
 FROM consul:latest as c
-ARG target_agent=client
-ENV TARGET_AGENT ${target_agent}
-COPY ./consul-agent/${TARGET_AGENT}/config.json /consul/config_template.json
+COPY ./consul/agent/client/config.json /consul/config_template.json
 
 FROM vault:latest as v
 COPY ./config/vault.hcl /vault/config_template.hcl
 
 FROM alpine:latest
-COPY ./tools/consul_agent_startup.sh /
-COPY ./tools/vault_server_startup.sh /
+COPY ./vault_node_startup.sh /
 COPY --from=c /consul /consul
 COPY --from=c /bin/consul /bin/consul
 COPY --from=v /vault /vault
@@ -19,7 +16,6 @@ RUN apk update \
     && mkdir -p /vault/config \
     && chmod 755 /bin/consul \
     && chmod 755 /bin/vault \
-    && chmod +x /vault_server_startup.sh \
-    && chmod +x /consul_agent_startup.sh
+    && chmod +x /vault_node_startup.sh
 
-CMD ["nohup", "./consul_agent_startup.sh", "&", ";", "./vault_server_startup.sh"]
+CMD ["/vault_node_startup.sh"]

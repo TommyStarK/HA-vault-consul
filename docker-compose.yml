@@ -17,11 +17,7 @@ networks:
 services:
 
   consul-server-1:
-    build:
-      context: .
-      args:
-        target_agent: server
-      dockerfile: Dockerfile-Consul
+    build: consul/
     container_name: consul-server-1
     hostname: consul-server-1
     environment:
@@ -36,11 +32,7 @@ services:
       - network
 
   consul-server-2:
-    build:
-      context: .
-      args:
-        target_agent: server
-      dockerfile: Dockerfile-Consul
+    build: consul/
     container_name: consul-server-2
     hostname: consul-server-2
     environment:
@@ -55,11 +47,7 @@ services:
       - network
 
   consul-server-3:
-    build:
-      context: .
-      args:
-        target_agent: server
-      dockerfile: Dockerfile-Consul
+    build: consul/
     container_name: consul-server-3
     hostname: consul-server-3
     environment:
@@ -74,11 +62,7 @@ services:
       - network
 
   vault-server-1:
-    build:
-      context: .
-      args:
-        target_agent: client
-      dockerfile: Dockerfile-Vault
+    build: .
     container_name: vault-server-1
     hostname: vault-server-1
     cap_add:
@@ -96,11 +80,7 @@ services:
       - network
 
   vault-server-2:
-    build:
-      context: .
-      args:
-        target_agent: client
-      dockerfile: Dockerfile-Vault
+    build: .
     container_name: vault-server-2
     hostname: vault-server-2
     cap_add:
@@ -118,11 +98,7 @@ services:
       - network
 
   vault-server-3:
-    build:
-      context: .
-      args:
-        target_agent: client
-      dockerfile: Dockerfile-Vault
+    build: .
     container_name: vault-server-3
     hostname: vault-server-3
     cap_add:
