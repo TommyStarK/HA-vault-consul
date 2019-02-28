@@ -13,9 +13,12 @@ COPY --from=v /bin/vault /bin/vault
 
 RUN apk update \
     && apk add bash \
+    && apk add --no-cache tini \
     && mkdir -p /vault/config \
     && chmod 755 /bin/consul \
     && chmod 755 /bin/vault \
     && chmod +x /vault_node_startup.sh
+
+ENTRYPOINT ["/sbin/tini", "--"]
 
 CMD ["/vault_node_startup.sh"]
