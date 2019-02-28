@@ -11,7 +11,7 @@ The source code herein is not production ready. It is meant to understand, learn
 
 ## Usage
 
-This docker-compose file aims to spawn easily an **High Availability** Vault using a Consul cluster as storage backend for
+This docker-compose file aims to spawn easily an **High Availability** Vault using a Consul cluster as backend storage for
 **demo purposes only**.
 
 It is a simple implementation of the following guide:
