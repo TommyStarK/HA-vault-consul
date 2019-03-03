@@ -73,6 +73,8 @@ services:
       - JOIN2=consul-server-2
       - JOIN3=consul-server-3
       - NODE_NAME=client-1
+    ports:
+      - 8201:8200
     volumes:
       - consul_client_1:/consul/data
       - vault_server_1:/vault/data
@@ -91,6 +93,8 @@ services:
       - JOIN2=consul-server-2
       - JOIN3=consul-server-3
       - NODE_NAME=client-2
+    ports:
+      - 8202:8200
     volumes:
       - consul_client_2:/consul/data
       - vault_server_2:/vault/data
@@ -109,6 +113,8 @@ services:
       - JOIN2=consul-server-2
       - JOIN3=consul-server-3
       - NODE_NAME=client-3
+    ports:
+      - 8203:8200
     volumes:
       - consul_client_3:/consul/data
       - vault_server_3:/vault/data
