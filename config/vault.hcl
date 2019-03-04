@@ -5,6 +5,7 @@ listener "tcp" {
   cluster_address  = "${cluster_addr}:8201"
   tls_disable = 1
 }
+
 storage "consul" {
   address = "127.0.0.1:8500"
   path = "vault/"
