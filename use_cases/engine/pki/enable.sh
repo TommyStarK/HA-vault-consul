@@ -38,27 +38,27 @@ cat <<EOF
 EOF
 }
 
-echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ...'
-curl --header "X-Vault-Token: $ROOT_TOKEN" \
-    --request POST  \
-    --data "$(pki_engine_config)" \
-    http://127.0.0.1:8201/v1/sys/mounts/pki | jq
-echo -e '\n'
+# echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ...'
+# curl --header "X-Vault-Token: $ROOT_TOKEN" \
+#     --request POST  \
+#     --data "$(pki_engine_config)" \
+#     http://127.0.0.1:8201/v1/sys/mounts/pki | jq
+# echo -e '\n'
 
-echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Generating root certificate ...'
-curl --header "X-Vault-Token: $ROOT_TOKEN"  \
-    --request POST \
-    --data "$(root_certificate_authority_config)" \
-    http://127.0.0.1:8201/v1/pki/root/generate/internal \
-    | jq -r ".data.certificate" > CA_cert.crt
-echo -e '\n'
+# echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Generating root certificate ...'
+# curl --header "X-Vault-Token: $ROOT_TOKEN"  \
+#     --request POST \
+#     --data "$(root_certificate_authority_config)" \
+#     http://127.0.0.1:8201/v1/pki/root/generate/internal \
+#     | jq -r ".data.certificate" > CA_cert.crt
+# echo -e '\n'
 
-echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ...'
-curl --header "X-Vault-Token: $ROOT_TOKEN"  \
-    --request POST \
-    --data "$(root_ca_crl_urls)" \
-    http://127.0.0.1:8201/v1/pki/config/urls
-echo -e '\n'
+# echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ...'
+# curl --header "X-Vault-Token: $ROOT_TOKEN"  \
+#     --request POST \
+#     --data "$(root_ca_crl_urls)" \
+#     http://127.0.0.1:8201/v1/pki/config/urls
+# echo -e '\n'
 
 
 # pki_engine_intermediate_config()
@@ -74,7 +74,6 @@ echo -e '\n'
 # }
 
 # echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ...'
-# curl --header "X-Vault-Token: s.O5cZZlMnocsGq4141oHTl548" --request POST  --data "$(pki_engine_intermediate_config)" http://127.0.0.1:8201/v1/sys/mounts/pki_int | jq
 # curl --header "X-Vault-Token: $ROOT_TOKEN" \
 #     --request POST  \
 #     --data "$(pki_engine_intermediate_config)" \
@@ -92,7 +91,6 @@ echo -e '\n'
 # }
 
 # echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ...'
-# curl --header "X-Vault-Token: s.O5cZZlMnocsGq4141oHTl548" --request POST  --data "$(intermediate_certificate_authority_config)"  http://127.0.0.1:8201/v1/pki_int/intermediate/generate/internal | jq -r ".data.csr" > intermediate.csr
 # curl --header "X-Vault-Token: $ROOT_TOKEN" \
 #     --request POST \
 #     --data "$(intermediate_certificate_authority_config)" \
@@ -103,18 +101,29 @@ echo -e '\n'
 # {
 # cat <<EOF
 # {
-#   "csr": "@intermediate.csr"
-#   "format": "pem_bundle"
+#   "csr": $(cat intermediate.csr),
+#   "format": "pem_bundle",
+#   "ttl": "43800h"
 # }
 # EOF
 # }
 
-# echo "$(payload_intermediate_cert)"
-
-# echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Siging intermediate certificate with root certificate ...'
-# curl --header "X-Vault-Token: s.O5cZZlMnocsGq4141oHTl548" --request POST --data "$(payload_intermediate_cert)" http://127.0.0.1:8201/v1/pki/root/sign-intermediate | jq -r '.data.certificate' > intermediate.cert.pem
+# echo $(payload_intermediate_cert)
+# echo '[\033[0;32mHigh-Availability Vault\033[0m] Siging intermediate certificate with root certificate ...'
 # curl --header "X-Vault-Token: $ROOT_TOKEN" \
 #     --request POST \
 #     --data "$(payload_intermediate_cert)" \
 #     http://127.0.0.1:8201/v1/pki/root/sign-intermediate | jq -r '.data.certificate' > intermediate.cert.pem
-# echo -e '\n'
+# echo '\n'
+
+
+# tee payload-signed.json <<EOF
+# {
+#   "certificate": "$(cat intermediate.cert.pem)"
+# }
+# EOF
+
+# curl --header "X-Vault-Token: $ROOT_TOKEN" \
+#     --request POST \
+#     --data @payload-signed.json \
+#     https://127.0.0.1:8201/v1/pki_int/intermediate/set-signed
