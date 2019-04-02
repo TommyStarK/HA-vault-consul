@@ -2,9 +2,11 @@
 #!/bin/bash
 
 DNS="example.com"
-ROOT_TOKEN=$(bash -c "cat certs/vault.keys.json | jq .root_token")
-ROOT_TOKEN="${ROOT_TOKEN%\"}"
-ROOT_TOKEN="${ROOT_TOKEN#\"}"
+TOKEN=$(bash -c "cat certs/token.json | jq -r '.auth.client_token' || cat certs/vault.keys.json | jq .TOKEN")
+TOKEN="${TOKEN%\"}"
+TOKEN="${TOKEN#\"}"
+
+echo "Using token: [$TOKEN]"
 
 sleep 0.5
 
@@ -21,7 +23,7 @@ EOF
 }
 
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ..."
-curl --header "X-Vault-Token: $ROOT_TOKEN" \
+curl --header "X-Vault-Token: $TOKEN" \
     --request POST  \
     --data "$(pki_engine_config)" \
     http://127.0.0.1:8201/v1/sys/mounts/pki | jq
@@ -40,7 +42,7 @@ EOF
 }
 
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating root certificate ..."
-curl --header "X-Vault-Token: $ROOT_TOKEN"  \
+curl --header "X-Vault-Token: $TOKEN"  \
     --request POST \
     --data "$(root_certificate_authority_config)" \
     http://127.0.0.1:8201/v1/pki/root/generate/internal \
@@ -60,10 +62,10 @@ EOF
 }
 
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ..."
-curl --header "X-Vault-Token: $ROOT_TOKEN"  \
+curl --header "X-Vault-Token: $TOKEN"  \
     --request POST \
     --data "$(root_ca_crl_urls)" \
-    http://127.0.0.1:8201/v1/pki/config/urls
+    http://127.0.0.1:8201/v1/pki/config/urls | jq
 echo ""
 
 sleep 0.5
@@ -81,7 +83,7 @@ EOF
 }
 
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ..."
-curl --header "X-Vault-Token: $ROOT_TOKEN" \
+curl --header "X-Vault-Token: $TOKEN" \
     --request POST  \
     --data "$(pki_engine_intermediate_config)" \
     http://127.0.0.1:8201/v1/sys/mounts/pki_int | jq
@@ -100,7 +102,7 @@ EOF
 }
 
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ..."
-curl --header "X-Vault-Token: $ROOT_TOKEN" \
+curl --header "X-Vault-Token: $TOKEN" \
     --request POST \
     --data "$(intermediate_certificate_authority_config)" \
     http://127.0.0.1:8201/v1/pki_int/intermediate/generate/internal | jq -r ".data.csr" > certs/intermediate.csr
@@ -124,7 +126,7 @@ echo ""
 # intermediate_csr_as_payload | tee /dev/tty | jq -c
 
 # echo "[\033[0;32mHigh-Availability Vault\033[0m] Siging intermediate certificate with root certificate ..."
-# curl --header "X-Vault-Token: $ROOT_TOKEN" \
+# curl --header "X-Vault-Token: $TOKEN" \
 #     --header "Content-Type: application/json" \
 #     --request POST \
 #     --data "$(intermediate_csr_as_payload)" \
@@ -144,7 +146,7 @@ echo ""
 # }
 
 # echo "[\033[0;32mHigh-Availability Vault\033[0m] Setting signed certificate to intermediate CA ..."
-# curl --header "X-Vault-Token: $ROOT_TOKEN" \
+# curl --header "X-Vault-Token: $TOKEN" \
 #     --request POST \
 #     --data "$(intermediate_certificate_as_payload)" \
 #     https://127.0.0.1:8201/v1/pki_int/intermediate/set-signed
@@ -162,7 +164,7 @@ echo ""
 # }
 
 # echo "[\033[0;32mHigh-Availability Vault\033[0m] Creating a role to allow issuing certificate to subdomains *.$DNS ..."
-# curl --header "X-Vault-Token: $ROOT_TOKEN" \
+# curl --header "X-Vault-Token: $TOKEN" \
 #     --request POST \
 #     --data "$(example_role_payload)" \
 #     http://127.0.0.1:8201/v1/pki_int/roles/example-dot-com
