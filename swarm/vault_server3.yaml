@@ -1,0 +1,55 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '3.7'
+
+networks:
+  ha_vault_network:
+    external: true
+
+volumes:
+  consul_client_3:
+  consul_server_3:
+  vault_server_3:
+
+services:
+
+  consul_server3:
+    image: consul_server:latest
+    hostname: consul.server3.example.com
+    deploy:
+      replicas: 1
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul.server1.example.com
+      - JOIN2=consul.server2.example.com
+      - JOIN3=consul.server3.example.com
+      - NODE_NAME=consul.server3
+    volumes:
+      - consul_server_3:/consul/data
+    networks:
+      ha_vault_network:
+        aliases:
+          - consul.server3.example.com
+
+  vault_server3:
+    image: vault_server:latest
+    hostname: vault.server3.example.com
+    environment:
+      - DATACENTER=test
+      - JOIN1=consul.server1.example.com
+      - JOIN2=consul.server2.example.com
+      - JOIN3=consul.server3.example.com
+      - NODE_NAME=consul.client3
+      - SKIP_SETCAP=1
+    ports:
+      - 8203:8200
+    volumes:
+      - consul_client_3:/consul/data
+      - vault_server_3:/vault/data
+    networks:
+      ha_vault_network:
+        aliases:
+          - vault.server3.example.com

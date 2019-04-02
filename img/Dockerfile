@@ -5,6 +5,7 @@ FROM vault:latest as v
 COPY ./config/vault.hcl /vault/config_template.hcl
 
 FROM alpine:latest
+ENV SKIP_SETCAP=1
 COPY ./vault_node_startup.sh /
 COPY --from=c /consul /consul
 COPY --from=c /bin/consul /bin/consul

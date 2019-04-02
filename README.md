@@ -9,14 +9,49 @@ High availability Vault using Consul as backend storage.
 
 The source code herein is not production ready. It is meant to understand, learn and manipulate Vault to manage secrets.
 
-## Usage
-
-This docker-compose file aims to spawn easily an **High Availability** Vault using a Consul cluster as backend storage for
-**demo purposes only**.
-
 It is a simple implementation of the following guide:
 * https://learn.hashicorp.com/vault/operations/ops-vault-ha-consul
 
+## Usage
+
+We will use `docker swarm` to deploy our **High Availability** Vault with consul as backend storage.
+
+First, we need to build the images:
+
 ```
-$ docker-compose up
+$ cd img/
+$ docker build . -t vault_server
+$ cd consul/
+$ docker build . -t consul_server
+$ cd ../..
+```
+
+Now we have to initialize our swarm cluster:
+
+```
+$ docker swarm init
+```
+
+We are now running a manager node and so we can deploy our stack:
+
+```
+$ docker stack deploy -c swarm/vault_server1.yaml vault1
+$ docker stack deploy -c swarm/vault_server2.yaml vault2
+$ docker stack deploy -c swarm/vault_server3.yaml vault3
+```
+
+To initialize your HA-vault, just run the following:
+
+```
+$ scripts/init.sh
+```
+
+A file named `vault.keys.json` holds your root token in the `certs` directory.
+You can go to http://localhost:8201/ui and authenticate using the root token.
+
+
+To enable the PKI engine, run the following:
+
+```
+$ scripts/engine/pki/enable.sh
 ```
