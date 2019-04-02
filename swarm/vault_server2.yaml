@@ -12,7 +12,7 @@ volumes:
 
 services:
 
-  onsul_server2:
+  consul_server2:
     image: consul_server:latest
     hostname: consul.server2.example.com
     deploy:

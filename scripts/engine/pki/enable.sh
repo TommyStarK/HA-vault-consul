@@ -25,7 +25,7 @@ curl --header "X-Vault-Token: $ROOT_TOKEN" \
     --request POST  \
     --data "$(pki_engine_config)" \
     http://127.0.0.1:8201/v1/sys/mounts/pki | jq
-echo "\n"
+echo ""
 
 sleep 0.5
 
@@ -45,7 +45,7 @@ curl --header "X-Vault-Token: $ROOT_TOKEN"  \
     --data "$(root_certificate_authority_config)" \
     http://127.0.0.1:8201/v1/pki/root/generate/internal \
     | jq -r ".data.certificate" > certs/CA_cert.crt
-echo "\n"
+echo ""
 
 sleep 0.5
 
@@ -64,7 +64,7 @@ curl --header "X-Vault-Token: $ROOT_TOKEN"  \
     --request POST \
     --data "$(root_ca_crl_urls)" \
     http://127.0.0.1:8201/v1/pki/config/urls
-echo "\n"
+echo ""
 
 sleep 0.5
 
@@ -85,7 +85,7 @@ curl --header "X-Vault-Token: $ROOT_TOKEN" \
     --request POST  \
     --data "$(pki_engine_intermediate_config)" \
     http://127.0.0.1:8201/v1/sys/mounts/pki_int | jq
-echo "\n"
+echo ""
 
 sleep 0.5
 
@@ -104,7 +104,7 @@ curl --header "X-Vault-Token: $ROOT_TOKEN" \
     --request POST \
     --data "$(intermediate_certificate_authority_config)" \
     http://127.0.0.1:8201/v1/pki_int/intermediate/generate/internal | jq -r ".data.csr" > certs/intermediate.csr
-echo "\n"
+echo ""
 
 # sleep 0.5
 
@@ -129,7 +129,7 @@ echo "\n"
 #     --request POST \
 #     --data "$(intermediate_csr_as_payload)" \
 #     http://127.0.0.1:8201/v1/pki/root/sign-intermediate | jq .
-# echo "\n"
+# echo ""
 
 # jg -r ".data.certificate" > certs/intermediate.cert.pem
 
@@ -148,7 +148,7 @@ echo "\n"
 #     --request POST \
 #     --data "$(intermediate_certificate_as_payload)" \
 #     https://127.0.0.1:8201/v1/pki_int/intermediate/set-signed
-# echo "\n"
+# echo ""
 
 # example_role_payload()
 # {
@@ -166,4 +166,4 @@ echo "\n"
 #     --request POST \
 #     --data "$(example_role_payload)" \
 #     http://127.0.0.1:8201/v1/pki_int/roles/example-dot-com
-# echo "\n"
+# echo ""

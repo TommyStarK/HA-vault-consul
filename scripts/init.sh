@@ -2,13 +2,15 @@
 
 echo -e '[\033[0;32mHigh-Availability Vault\033[0m] Initializing HA Vault ...'
 curl --request POST --data '{"secret_shares": 5, "secret_threshold": 3}' http://127.0.0.1:8201/v1/sys/init | jq  > certs/vault.keys.json
-echo -e '\n'
+echo ""
+
+sleep 1
 
 UNSEAL_KEY_1=$(bash -c "cat certs/vault.keys.json | jq .keys[0]")
 UNSEAL_KEY_2=$(bash -c "cat certs/vault.keys.json | jq .keys[1]")
 UNSEAL_KEY_3=$(bash -c "cat certs/vault.keys.json | jq .keys[2]")
 
-sleep 2
+sleep 1
 
 for (( i=1; i<4; i++ ))
 do  
@@ -30,5 +32,5 @@ do
 
  echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Health check Vault $i ..."
  curl "http://127.0.0.1:820$i/v1/sys/health" | jq
- echo -e '\n'
+ echo ""
 done

@@ -49,6 +49,11 @@ $ scripts/init.sh
 A file named `vault.keys.json` holds your root token in the `certs` directory.
 You can go to http://localhost:8201/ui and authenticate using the root token.
 
+To enable policies, run the following:
+
+```
+$ scripts/setup_policies.sh
+```
 
 To enable the PKI engine, run the following:
 
