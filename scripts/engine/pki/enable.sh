@@ -2,11 +2,15 @@
 #!/bin/bash
 
 DNS="example.com"
-TOKEN=$(bash -c "cat certs/token.json | jq -r '.auth.client_token' || cat certs/vault.keys.json | jq .TOKEN")
+TOKEN=$(bash -c "cat certs/user_token.json | jq -r '.auth.client_token'")
 TOKEN="${TOKEN%\"}"
 TOKEN="${TOKEN#\"}"
 
-echo "Using token: [$TOKEN]"
+if [ -z "$TOKEN" ]
+then
+    echo "Token is empty. Use scripts/setup_policies.sh to generate a token based on a specfied policy or use root token (Not recommended)."
+    exit 1
+fi
 
 sleep 0.5
 

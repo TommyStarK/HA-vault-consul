@@ -49,11 +49,19 @@ $ scripts/init.sh
 A file named `vault.keys.json` holds your root token in the `certs` directory.
 You can go to http://localhost:8201/ui and authenticate using the root token.
 
-To enable policies, run the following:
+Now we must enable policies in order to create a user with correct ACL and not use the
+root token anymore.
 
 ```
 $ scripts/setup_policies.sh
 ```
+
+Then we create an entity user `admin` with the correct ACL:
+
+```
+$ scripts/setup_entities_and_groups.sh
+```
+
 
 To enable the PKI engine, run the following:
 
