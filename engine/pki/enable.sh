@@ -1,116 +1,101 @@
 
 #!/bin/bash
 
-DNS="example.com"
-TOKEN=$(bash -c "cat certs/user_token.json | jq -r '.auth.client_token'")
+if [ ! -f ./ha-vault/creds/admin_token.json ]; then
+    echo "[\033[0;31mHigh-Availability Vault\033[0m] Not found admin_token.json. Exiting ..."
+    exit 1
+fi
+
+TOKEN=$(bash -c "cat ha-vault/creds/admin_token.json | jq -r '.auth.client_token'")
 TOKEN="${TOKEN%\"}"
 TOKEN="${TOKEN#\"}"
 
-if [ -z "$TOKEN" ]
-then
-    echo "Token is empty. Use scripts/setup_policies.sh to generate a token based on a specfied policy or use root token (Not recommended)."
+read -p $'\e[34m>>>\e[0m Provide address (ip:port) of one Vault server of the cluster: ' address
+if [ -z "$address" ]; then
+    echo -e '[\033[0;31mHigh-Availability Vault\033[0m] Address (ip:port) not provided. Exiting ...'
+    exit 1
+fi
+
+read -p $'\e[34m>>>\e[0m Set domain name service: ' dns
+if [ -z "$dns" ]; then
+        echo -e '[\033[0;31mHigh-Availability Vault\033[0m] DNS not provided. Exiting ...'
     exit 1
 fi
 
 sleep 0.5
 
-pki_engine_config()
-{
-cat <<EOF
-{
-    "type":"pki", 
-    "config": { 
-        "max_lease_ttl":"87600h" 
-    }
-}
-EOF
-}
-
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ..."
 curl --header "X-Vault-Token: $TOKEN" \
     --request POST  \
-    --data "$(pki_engine_config)" \
-    http://127.0.0.1:8201/v1/sys/mounts/pki | jq
-echo ""
-
-sleep 0.5
+    --data '
+    {
+        "type":"pki", 
+        "config": { 
+            "max_lease_ttl":"87600h" 
+        }
+    }' \
+    "http://$address/v1/sys/mounts/pki" | jq && echo ""
 
 root_certificate_authority_config()
 {
 cat <<EOF
 {
-    "common_name": "$DNS",
+    "common_name": "$dns",
     "ttl": "87600h"
 }
 EOF
 }
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating root certificate ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating root certificate ..."
 curl --header "X-Vault-Token: $TOKEN"  \
     --request POST \
     --data "$(root_certificate_authority_config)" \
-    http://127.0.0.1:8201/v1/pki/root/generate/internal \
-    | jq -r ".data.certificate" > certs/CA_cert.crt
-echo ""
-
-sleep 0.5
+    "http://$address/v1/pki/root/generate/internal" \
+    | jq -r ".data.certificate" > ha-vault/certs/CA_cert.crt && echo ""
 
 root_ca_crl_urls()
 {
 cat <<EOF
 {
-  "issuing_certificates": "http://127.0.0.1:8201/v1/pki/ca",
-  "crl_distribution_points": "http://127.0.0.1:8201/v1/pki/crl"
+  "issuing_certificates": "http://$address/v1/pki/ca",
+  "crl_distribution_points": "http://$address/v1/pki/crl"
 }
 EOF
 }
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ..."
 curl --header "X-Vault-Token: $TOKEN"  \
     --request POST \
     --data "$(root_ca_crl_urls)" \
-    http://127.0.0.1:8201/v1/pki/config/urls | jq
-echo ""
+    "http://$address/v1/pki/config/urls" | jq && echo ""
 
-sleep 0.5
-
-pki_engine_intermediate_config()
-{
-cat <<EOF
-{
-    "type":"pki", 
-    "config": { 
-        "max_lease_ttl":"43800h" 
-    }
-}
-EOF
-}
-
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ..."
 curl --header "X-Vault-Token: $TOKEN" \
     --request POST  \
-    --data "$(pki_engine_intermediate_config)" \
-    http://127.0.0.1:8201/v1/sys/mounts/pki_int | jq
-echo ""
-
-sleep 0.5
+    --data '
+    {
+        "type":"pki", 
+        "config": { 
+            "max_lease_ttl":"43800h" 
+        }
+    }' \
+    "http://$address/v1/sys/mounts/pki_int" | jq && echo ""
 
 intermediate_certificate_authority_config()
 {
 cat <<EOF
 {
-    "common_name": "$DNS Intermediate Authority",
+    "common_name": "$dns Intermediate Authority",
     "ttl": "43800h"
 }
 EOF
 }
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ..."
 curl --header "X-Vault-Token: $TOKEN" \
     --request POST \
     --data "$(intermediate_certificate_authority_config)" \
-    http://127.0.0.1:8201/v1/pki_int/intermediate/generate/internal | jq -r ".data.csr" > certs/intermediate.csr
-echo ""
+    "http://$address/v1/pki_int/intermediate/generate/internal" | jq -r ".data.csr" > ha-vault/certs/intermediate.csr && echo ""
 
 # sleep 0.5
 

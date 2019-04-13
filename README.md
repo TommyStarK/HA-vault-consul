@@ -19,7 +19,7 @@ We will use `docker swarm` to deploy our **High Availability** Vault with consul
 First, we need to build the images:
 
 ```
-$ cd img/
+$ cd ha-vault/
 $ docker build . -t vault_server
 $ cd consul/
 $ docker build . -t consul_server
@@ -35,36 +35,25 @@ $ docker swarm init
 We are now running a manager node and so we can deploy our stack:
 
 ```
-$ docker stack deploy -c swarm/vault_server1.yaml vault1
-$ docker stack deploy -c swarm/vault_server2.yaml vault2
-$ docker stack deploy -c swarm/vault_server3.yaml vault3
+$ docker stack deploy -c stack/vault_server1.yaml vault1
+$ docker stack deploy -c stack/vault_server2.yaml vault2
+$ docker stack deploy -c stack/vault_server3.yaml vault3
 ```
 
-To initialize your HA-vault, just run the following:
+To setup your HA-vault, just run the following:
 
 ```
-$ scripts/init.sh
+$ setup_ha_vault.sh
 ```
 
-A file named `vault.keys.json` holds your root token in the `certs` directory.
-You can go to http://localhost:8201/ui and authenticate using the root token.
+This script will perform the following:
 
-Now we must enable policies in order to create a user with correct ACL and not use the
-root token anymore.
+- Vault initialization
+- Vault unseal
+- Setup an admin policy
+- Setup a provisioner policy
+- Enable user/password auth engine
+- Create **admin** entity attached to admin policy
+- Log as admin to retrieve a valid token
 
-```
-$ scripts/setup_policies.sh
-```
-
-Then we create an entity user `admin` with the correct ACL:
-
-```
-$ scripts/setup_entities_and_groups.sh
-```
-
-
-To enable the PKI engine, run the following:
-
-```
-$ scripts/engine/pki/enable.sh
-```
+> You can now go to http://localhost:8201/ui and authenticate as **admin**.

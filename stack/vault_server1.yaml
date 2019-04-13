@@ -1,8 +1,8 @@
 version: '3.7'
 
 networks:
-  ha_vault_network:
-    name: ha_vault_network
+  haOverlay:
+    name: haOverlay
     driver: overlay
     attachable: true
 
@@ -27,7 +27,7 @@ services:
     volumes:
       - consul_server_1:/consul/data
     networks:
-      ha_vault_network:
+      haOverlay:
         aliases:
           - consul.server1.example.com
 
@@ -49,6 +49,6 @@ services:
       - consul_client_1:/consul/data
       - vault_server_1:/vault/data
     networks:
-      ha_vault_network:
+      haOverlay:
         aliases:
           - vault.server1.example.com

@@ -1,7 +1,7 @@
 version: '3.7'
 
 networks:
-  ha_vault_network:
+  haOverlay:
     external: true
 
 volumes:
@@ -26,7 +26,7 @@ services:
     volumes:
       - consul_server_2:/consul/data
     networks:
-      ha_vault_network:
+      haOverlay:
         aliases:
           - consul.server2.example.com
 
@@ -48,6 +48,6 @@ services:
       - consul_client_2:/consul/data
       - vault_server_2:/vault/data
     networks:
-      ha_vault_network:
+      haOverlay:
         aliases:
           - vault.server2.example.com
