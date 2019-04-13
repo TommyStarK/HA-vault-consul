@@ -12,8 +12,7 @@ check_last_cmd_return_code() {
 
 initialize_and_unseal_vault() {
     if [ -f ./ha-vault/creds/vault.keys.json ]; then
-        echo -e "[\033[0;31mHigh-Availability Vault\033[0m] HA vault seems to be already unsealed. Found 'vault.keys.json' in ha-vault/creds/"
-        echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Exiting ..."
+        echo -e "[\033[0;31mHigh-Availability Vault\033[0m] HA vault seems to be already unsealed. Found 'vault.keys.json' in ha-vault/creds/. Exiting ..."
         exit 1
     fi
 
@@ -123,6 +122,7 @@ enabling_user_password_auth_engine_and_admin_entity() {
         "http://$address_first_unsealed/v1/sys/auth/userpass"
     check_last_cmd_return_code
     
+    echo ""
     echo -e "\033[0;34m>>>\033[0m Set password for admin entity ('admin' by default): "
     read -s psswd && echo
     if [ -z "$psswd" ]; then
@@ -186,7 +186,7 @@ EOF
     fi
 }
 
-
+echo ""
 for ((i=0; i<${#address[@]}; i++)); do
     let nbr="$i+1"
     read -p $'\e[34m>>>\e[0m Set host (ip) for Vault server n°'"$nbr"' (127.0.0.1 by default): ' host
@@ -196,6 +196,7 @@ for ((i=0; i<${#address[@]}; i++)); do
         address[$i]="$host:${address[$i]}"
     fi
 done
+echo ""
 
 address_first_unsealed=${address[0]}
 initialize_and_unseal_vault

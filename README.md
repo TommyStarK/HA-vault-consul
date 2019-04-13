@@ -57,3 +57,17 @@ This script will perform the following:
 - Log as admin to retrieve a valid token
 
 > You can now go to http://localhost:8201/ui and authenticate as **admin**.
+
+### PKI engine
+
+A convenient script will help to you to easily mount a `PKI` engine on your HA Vault.
+To do so, run:
+
+
+```
+$ ./engine/pki/enable.sh
+```
+
+**/!\\** You must run an initialized, unsealed and setup HA vault before being able to mount a `PKI` engine.
+
+You will have to provide an address (ip:port) of one member of the cluster, as well as a dns.
