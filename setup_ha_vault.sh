@@ -18,11 +18,12 @@ initialize_and_unseal_vault() {
     fi
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Initializing HA Vault ..."
-    curl --request POST \
+    curl -s --request POST \
         --data '{"secret_shares": 5, "secret_threshold": 3}' \
-        "http://$address_first_unsealed/v1/sys/init" > ha-vault/creds/vault.keys.json > /dev/null 2>&1
+        "http://$address_first_unsealed/v1/sys/init" > ha-vault/creds/vault.keys.json
 
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        rm ./ha-vault/creds/vault.keys.json
         echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Initialization HA vault failed. Exiting ..."
         exit 1
     fi
@@ -37,22 +38,22 @@ initialize_and_unseal_vault() {
         let nbr="$i+1"
         echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Unsealing vault $nbr ..."
 
-        curl \
+        curl -s -o /dev/null \
         --request POST \
         --data '{"key": '"$UNSEAL_KEY_1"'}' \
-        "http://${address[$i]}/v1/sys/unseal" > /dev/null 2>&1
+        "http://${address[$i]}/v1/sys/unseal"
         check_last_cmd_return_code
 
-        curl \
+        curl -s -o /dev/null \
             --request POST \
             --data '{"key": '"$UNSEAL_KEY_2"'}' \
-            "http://${address[$i]}/v1/sys/unseal" > /dev/null 2>&1
+            "http://${address[$i]}/v1/sys/unseal"
         check_last_cmd_return_code
         
-        curl \
+        curl -s -o /dev/null \
             --request POST \
             --data '{"key": '"$UNSEAL_KEY_3"'}' \
-            "http://${address[$i]}/v1/sys/unseal" > /dev/null 2>&1
+            "http://${address[$i]}/v1/sys/unseal"
         check_last_cmd_return_code
     done
 
@@ -69,33 +70,41 @@ setup_admin_and_provisioner_policy() {
     ROOT_TOKEN="${ROOT_TOKEN#\"}"
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating admin policy ..."
-    curl --header "X-Vault-Token: $ROOT_TOKEN" \
+    curl -s -o /dev/null \
+        --header "X-Vault-Token: $ROOT_TOKEN" \
         --request PUT \
         --data @ha-vault/policies/admin.json \
-        "http://${address_first_unsealed}/v1/sys/policies/acl/admin" > /dev/null 2>&1
+        "http://${address_first_unsealed}/v1/sys/policies/acl/admin"
     check_last_cmd_return_code
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating provisioner policy ..."
-    curl --header "X-Vault-Token: $ROOT_TOKEN" \
+    curl -s -o /dev/null \
+        --header "X-Vault-Token: $ROOT_TOKEN" \
         --request PUT \
         --data @ha-vault/policies/provisioner.json \
-        "http://${address_first_unsealed}/v1/sys/policies/acl/provisioner" > /dev/null 2>&1
+        "http://${address_first_unsealed}/v1/sys/policies/acl/provisioner"
     check_last_cmd_return_code
 
+    if [ -f ./ha-vault/creds/policy_token.json ]; then
+        rm ./ha-vault/creds/policy_token.json
+    fi
+
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating token attached to admin policy ..."
-    curl --header "X-Vault-Token: $ROOT_TOKEN" \
+    curl -s \
+        --header "X-Vault-Token: $ROOT_TOKEN" \
         --request POST \
         --data '{ "policies":"admin" }' \
-        "http://${address_first_unsealed}/v1/auth/token/create" > ha-vault/creds/policy_token.json > /dev/null 2>&1
-    
+        "http://${address_first_unsealed}/v1/auth/token/create" > ha-vault/creds/policy_token.json
+
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        rm ./ha-vault/creds/policy_token.json
         echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Generating token attached to admin policy failed. Exiting ..."
         exit 1
     fi
 }
 
 enabling_user_password_auth_engine_and_admin_entity() {
-    if [ ! -f ./ha-vault/creds/vault.keys.json ]; then
+    if [ ! -f ./ha-vault/creds/policy_token.json ]; then
         echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Not found 'policy_token.json' attached to admin policy. Exiting ..."
         exit 1
     fi
@@ -107,12 +116,12 @@ enabling_user_password_auth_engine_and_admin_entity() {
     sleep 0.5
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Enabling user/password auth engine ..."
-    curl --header "X-Vault-Token: $TOKEN" \
+    curl -s -o /dev/null \
+        --header "X-Vault-Token: $TOKEN" \
         --request POST \
         --data '{"type": "userpass"}' \
-        "http://$address_first_unsealed/v1/sys/auth/userpass" > /dev/null 2>&1
+        "http://$address_first_unsealed/v1/sys/auth/userpass"
     check_last_cmd_return_code
-    echo ""
     
     echo -e "\033[0;34m>>>\033[0m Set password for admin entity ('admin' by default): "
     read -s psswd && echo
@@ -129,14 +138,17 @@ EOF
     }
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Creating entity 'admin' ..."
-    curl --header "X-Vault-Token: $TOKEN" \
+    curl -s \
+        -o /dev/null \
+        --header "X-Vault-Token: $TOKEN" \
         --request POST \
         --data "$(psswd_handler)" \
-        "http://$address_first_unsealed/v1/auth/userpass/users/admin" > /dev/null 2>&1
+        "http://$address_first_unsealed/v1/auth/userpass/users/admin"
     check_last_cmd_return_code
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Registering 'admin' as new entity ..."
-    curl --header "X-Vault-Token: $TOKEN" \
+    curl -s -o /dev/null \
+        --header "X-Vault-Token: $TOKEN" \
         --request POST \
         --data '
         {
@@ -147,7 +159,7 @@ EOF
             "policies": ["admin"]
         }
         ' \
-        "http://$address_first_unsealed/v1/identity/entity" > /dev/null 2>&1
+        "http://$address_first_unsealed/v1/identity/entity"
     check_last_cmd_return_code
     
     psswd_to_payload() {
@@ -158,12 +170,17 @@ EOF
 EOF
     }
 
+    if [ -f ./ha-vault/creds/admin_token.json ]; then
+        rm ./ha-vault/creds/admin_token.json
+    fi
+
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Login as 'admin' ..."
-    curl --request POST \
+    curl -s --request POST \
         --data "$(psswd_to_payload)" \
-        "http://$address_first_unsealed/v1/auth/userpass/login/admin" > ha-vault/creds/admin_token.json > /dev/null 2>&1
-    
+        "http://$address_first_unsealed/v1/auth/userpass/login/admin" > ha-vault/creds/admin_token.json
+
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+        rm ./ha-vault/creds/admin_token.json
         echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Login as admin failed. Exiting ..."
         exit 1
     fi
@@ -172,7 +189,7 @@ EOF
 
 for ((i=0; i<${#address[@]}; i++)); do
     let nbr="$i+1"
-    read -p $'\e[34m>>>\e[0m Set host (ip) for Vault server n°'"$nbr"' (localhost by default): ' host
+    read -p $'\e[34m>>>\e[0m Set host (ip) for Vault server n°'"$nbr"' (127.0.0.1 by default): ' host
     if [ -z "$host" ]; then
         address[$i]="127.0.0.1:${address[$i]}"
     else
@@ -180,7 +197,7 @@ for ((i=0; i<${#address[@]}; i++)); do
     fi
 done
 
-address_first_unsealed=${address[0]} && echo ""
+address_first_unsealed=${address[0]}
 initialize_and_unseal_vault
 setup_admin_and_provisioner_policy
 enabling_user_password_auth_engine_and_admin_entity
