@@ -3,7 +3,7 @@
 
 check_last_cmd_return_code() {
     if [ $? -ne 0 ]; then
-        echo "[\033[0;31mHigh-Availability Vault\033[0m] Mounting PKI engine failed. Exiting ..."
+        echo "[\033[0;31mHigh-Availability Vault\033[0m] $1. Exiting ..."
         exit 1
     fi
 }
@@ -43,17 +43,7 @@ curl -s -o /dev/null \
         }
     }' \
     "http://$address/v1/sys/mounts/pki"
-check_last_cmd_return_code
-
-root_certificate_authority_config()
-{
-cat <<EOF
-{
-    "common_name": "$dns",
-    "ttl": "87600h"
-}
-EOF
-}
+check_last_cmd_return_code "Mounting root PKI engine failed"
 
 if [ -f ./ha-vault/certs/CA_cert.crt ]; then
     echo "[\033[0;31mHigh-Availability Vault\033[0m] Found CA root certificate. PKI engine already mounted. Exiting ..."
@@ -63,7 +53,12 @@ fi
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating CA root certificate ..."
 curl -s --header "X-Vault-Token: $TOKEN"  \
     --request POST \
-    --data "$(root_certificate_authority_config)" \
+    --data '
+    {
+        "common_name": "'"$dns"'",
+        "ttl": "87600h"
+    }
+    ' \
     "http://$address/v1/pki/root/generate/internal" \
     | jq -r ".data.certificate" > ha-vault/certs/CA_cert.crt
 
@@ -73,24 +68,19 @@ if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     exit 1
 fi
 
-root_ca_crl_urls()
-{
-cat <<EOF
-{
-  "issuing_certificates": "http://$address/v1/pki/ca",
-  "crl_distribution_points": "http://$address/v1/pki/crl"
-}
-EOF
-}
-
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ..."
 curl -s \
     -o /dev/null \
     --header "X-Vault-Token: $TOKEN"  \
     --request POST \
-    --data "$(root_ca_crl_urls)" \
+    --data '
+    {
+        "issuing_certificates": "http://'"$address"'/v1/pki/ca",
+        "crl_distribution_points": "http://'"$address"'/v1/pki/crl"
+    }
+    ' \
     "http://$address/v1/pki/config/urls"
-check_last_cmd_return_code
+check_last_cmd_return_code "Configuration of CA/CRL urls failed"
 
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ..."
 curl -s -o /dev/null --header "X-Vault-Token: $TOKEN" \
@@ -103,17 +93,7 @@ curl -s -o /dev/null --header "X-Vault-Token: $TOKEN" \
         }
     }' \
     "http://$address/v1/sys/mounts/pki_int"
-check_last_cmd_return_code
-
-intermediate_certificate_authority_config()
-{
-cat <<EOF
-{
-    "common_name": "$dns Intermediate Authority",
-    "ttl": "43800h"
-}
-EOF
-}
+check_last_cmd_return_code "Mounting intermediate PKI engine failed"
 
 if [ -f ./ha-vault/certs/intermediate.csr ]; then
     echo "[\033[0;31mHigh-Availability Vault\033[0m] Found CA intermediate csr. PKI intermediate engine already mounted. Exiting ..."
@@ -123,7 +103,12 @@ fi
 echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ..."
 curl -s --header "X-Vault-Token: $TOKEN" \
     --request POST \
-    --data "$(intermediate_certificate_authority_config)" \
+    --data '
+    {
+        "common_name": "'"$dns"' Intermediate Authority",
+        "ttl": "43800h"
+    }
+    ' \
     "http://$address/v1/pki_int/intermediate/generate/internal" | jq -r ".data.csr" > ha-vault/certs/intermediate.csr
 
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
@@ -138,31 +123,25 @@ fi
 # WORK IN PROGRESS 
 # 
 
+echo "[\033[0;32mHigh-Availability Vault\033[0m] Siging intermediate certificate with root certificate ..."
+curl -s --header "X-Vault-Token: $TOKEN" \
+    --header "Content-Type: application/json" \
+    --request POST \
+    --data '
+    {
+        "csr": "'"@ha-vault/certs/intermediate.csr"'",
+        "format": "pem_bundle",
+        "ttl": "43800h"
+        }
+    ' \
+    "http://$address/v1/pki/root/sign-intermediate" \
+    | jq -r ".data.certificate" > ha-vault/certs/intermediate.cert.pem
 
-# sleep 0.5
-
-# intermediate_csr_as_payload()
-# {
-# # | tr -d '\\n\r'
-# # | sed -e 's/\\n/\n/g')
-# cat <<EOF
-# {
-#   "csr": "$(cat certs/intermediate.csr | sed -e 's/\\n//g')",
-#   "format": "pem_bundle",
-#   "ttl": "43800h"
-# }
-# EOF
-# }
-
-# intermediate_csr_as_payload | tee /dev/tty | jq -c
-
-# echo "[\033[0;32mHigh-Availability Vault\033[0m] Siging intermediate certificate with root certificate ..."
-# curl --header "X-Vault-Token: $TOKEN" \
-#     --header "Content-Type: application/json" \
-#     --request POST \
-#     --data "$(intermediate_csr_as_payload)" \
-#     http://127.0.0.1:8201/v1/pki/root/sign-intermediate | jq .
-# echo ""
+if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+    rm ./ha-vault/certs/intermediate.cert.pem
+    echo "[\033[0;31mHigh-Availability Vault\033[0m] Failed to sign intermediate CA certificate. Exiting ..."
+    exit 1
+fi
 
 # jg -r ".data.certificate" > certs/intermediate.cert.pem
 

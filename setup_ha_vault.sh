@@ -5,7 +5,7 @@ address_first_unsealed=""
 
 check_last_cmd_return_code() {
     if [ $? -ne 0 ]; then
-        echo -e "[\033[0;31mHigh-Availability Vault\033[0m] setup HA vault failed. Exiting ..."
+        echo -e "[\033[0;31mHigh-Availability Vault\033[0m] $1. Exiting ..."
         exit 1
     fi
 }
@@ -41,19 +41,19 @@ initialize_and_unseal_vault() {
         --request POST \
         --data '{"key": '"$UNSEAL_KEY_1"'}' \
         "http://${address[$i]}/v1/sys/unseal"
-        check_last_cmd_return_code
+        check_last_cmd_return_code "Unseal vault $nbr with key: $UNSEAL_KEY_1 failed"
 
         curl -s -o /dev/null \
             --request POST \
             --data '{"key": '"$UNSEAL_KEY_2"'}' \
             "http://${address[$i]}/v1/sys/unseal"
-        check_last_cmd_return_code
+        check_last_cmd_return_code "Unseal vault $nbr with key: $UNSEAL_KEY_2 failed"
         
         curl -s -o /dev/null \
             --request POST \
             --data '{"key": '"$UNSEAL_KEY_3"'}' \
             "http://${address[$i]}/v1/sys/unseal"
-        check_last_cmd_return_code
+        check_last_cmd_return_code "Unseal vault $nbr with key: $UNSEAL_KEY_3 failed"
     done
 
 }
@@ -74,7 +74,7 @@ setup_admin_and_provisioner_policy() {
         --request PUT \
         --data @ha-vault/policies/admin.json \
         "http://${address_first_unsealed}/v1/sys/policies/acl/admin"
-    check_last_cmd_return_code
+    check_last_cmd_return_code "Generating admin policy failed"
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating provisioner policy ..."
     curl -s -o /dev/null \
@@ -82,7 +82,7 @@ setup_admin_and_provisioner_policy() {
         --request PUT \
         --data @ha-vault/policies/provisioner.json \
         "http://${address_first_unsealed}/v1/sys/policies/acl/provisioner"
-    check_last_cmd_return_code
+    check_last_cmd_return_code "Generating provisioner policy failed"
 
     if [ -f ./ha-vault/creds/policy_token.json ]; then
         rm ./ha-vault/creds/policy_token.json
@@ -92,7 +92,7 @@ setup_admin_and_provisioner_policy() {
     curl -s \
         --header "X-Vault-Token: $ROOT_TOKEN" \
         --request POST \
-        --data '{ "policies":"admin" }' \
+        --data '{ "policies": "admin" }' \
         "http://${address_first_unsealed}/v1/auth/token/create" > ha-vault/creds/policy_token.json
 
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
@@ -118,9 +118,9 @@ enabling_user_password_auth_engine_and_admin_entity() {
     curl -s -o /dev/null \
         --header "X-Vault-Token: $TOKEN" \
         --request POST \
-        --data '{"type": "userpass"}' \
+        --data '{ "type": "userpass" }' \
         "http://$address_first_unsealed/v1/sys/auth/userpass"
-    check_last_cmd_return_code
+    check_last_cmd_return_code "Enabling user/password auth engine failed"
     
     echo
     echo -e "\033[0;34m>>>\033[0m Set password for admin entity ('admin' by default): "
@@ -129,22 +129,19 @@ enabling_user_password_auth_engine_and_admin_entity() {
         psswd="admin"
     fi
 
-    psswd_handler() {
-        cat <<EOF
-{
-  "password": "$psswd", "policies": "admin"
-}
-EOF
-    }
-
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Creating entity 'admin' ..."
     curl -s \
         -o /dev/null \
         --header "X-Vault-Token: $TOKEN" \
         --request POST \
-        --data "$(psswd_handler)" \
+        --data '
+        {
+            "password": "'"$psswd"'", 
+            "policies": "admin"
+        }
+        ' \
         "http://$address_first_unsealed/v1/auth/userpass/users/admin"
-    check_last_cmd_return_code
+    check_last_cmd_return_code "Creating 'admin' entity failed"
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Registering 'admin' as new entity ..."
     curl -s -o /dev/null \
@@ -160,23 +157,19 @@ EOF
         }
         ' \
         "http://$address_first_unsealed/v1/identity/entity"
-    check_last_cmd_return_code
+    check_last_cmd_return_code "Registering 'admin' as new entity failed"
     
-    psswd_to_payload() {
-        cat <<EOF
-{
-  "password": "$psswd"
-}
-EOF
-    }
-
     if [ -f ./ha-vault/creds/admin_token.json ]; then
         rm ./ha-vault/creds/admin_token.json
     fi
 
     echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Login as 'admin' ..."
     curl -s --request POST \
-        --data "$(psswd_to_payload)" \
+        --data '
+        {
+            "password": "'"$psswd"'"
+        }
+        ' \
         "http://$address_first_unsealed/v1/auth/userpass/login/admin" > ha-vault/creds/admin_token.json
 
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
