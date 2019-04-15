@@ -7,9 +7,9 @@ networks:
     attachable: true
 
 volumes:
-  consul_client_1:
-  consul_server_1:
-  vault_server_1:
+ consul_client_1:
+ consul_server_1:
+ vault_server_1:
 
 services:
 
@@ -25,7 +25,7 @@ services:
       - JOIN3=consul.server3.example.com
       - NODE_NAME=consul.server1
     volumes:
-      - consul_server_1:/consul/data
+     - consul_server_1:/consul/data
     networks:
       haOverlay:
         aliases:
@@ -46,8 +46,8 @@ services:
     ports:
       - 8201:8200
     volumes:
-      - consul_client_1:/consul/data
-      - vault_server_1:/vault/data
+     - consul_client_1:/consul/data
+     - vault_server_1:/vault/data
     networks:
       haOverlay:
         aliases:

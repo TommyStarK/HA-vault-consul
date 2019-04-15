@@ -1,15 +1,14 @@
-
 #!/bin/bash
 
 check_last_cmd_return_code() {
     if [ $? -ne 0 ]; then
-        echo "[\033[0;31mHigh-Availability Vault\033[0m] $1. Exiting ..."
+        echo -e "[\033[0;31mHigh-Availability Vault\033[0m] $1. Exiting ..."
         exit 1
     fi
 }
 
 if [ ! -f ./ha-vault/creds/admin_token.json ]; then
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Not found admin_token.json. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Not found admin_token.json. Exiting ..."
     exit 1
 fi
 
@@ -17,21 +16,20 @@ TOKEN=$(bash -c "cat ha-vault/creds/admin_token.json | jq -r '.auth.client_token
 TOKEN="${TOKEN%\"}"
 TOKEN="${TOKEN#\"}"
 
-read -p $'\e[34m>>>\e[0m Provide address (ip:port) of one Vault server of the cluster: ' address
+read -p $'\e[34m>>>\e[0m Provide address (ip:port) of one Vault server of the cluster ('127.0.0.1:8201' by default): ' address
 if [ -z "$address" ]; then
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Address (ip:port) not provided. Exiting ..."
-    exit 1
+    address="127.0.0.1:8201"
 fi
 
 read -p $'\e[34m>>>\e[0m Set domain name service: ' dns
 if [ -z "$dns" ]; then
-        echo "[\033[0;31mHigh-Availability Vault\033[0m] DNS not provided. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] DNS not provided. Exiting ..."
     exit 1
 fi
 
 sleep 0.5
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Root PKI engine ..."
 curl -s -o /dev/null \
     --header "X-Vault-Token: $TOKEN" \
     --request POST  \
@@ -46,11 +44,11 @@ curl -s -o /dev/null \
 check_last_cmd_return_code "Mounting root PKI engine failed"
 
 if [ -f ./ha-vault/certs/CA_cert.crt ]; then
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Found CA root certificate. PKI engine already mounted. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Found CA root certificate. PKI engine already mounted. Exiting ..."
     exit 1
 fi
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating CA root certificate ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating CA root certificate ..."
 curl -s --header "X-Vault-Token: $TOKEN"  \
     --request POST \
     --data '
@@ -64,11 +62,11 @@ curl -s --header "X-Vault-Token: $TOKEN"  \
 
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     rm ./ha-vault/certs/CA_cert.crt
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Failed to generate CA root certificate. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Failed to generate CA root certificate. Exiting ..."
     exit 1
 fi
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Configure CA and CRL URLs ..."
 curl -s \
     -o /dev/null \
     --header "X-Vault-Token: $TOKEN"  \
@@ -82,7 +80,7 @@ curl -s \
     "http://$address/v1/pki/config/urls"
 check_last_cmd_return_code "Configuration of CA/CRL urls failed"
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Mounting Intermediate PKI engine ..."
 curl -s -o /dev/null --header "X-Vault-Token: $TOKEN" \
     --request POST  \
     --data '
@@ -96,11 +94,11 @@ curl -s -o /dev/null --header "X-Vault-Token: $TOKEN" \
 check_last_cmd_return_code "Mounting intermediate PKI engine failed"
 
 if [ -f ./ha-vault/certs/intermediate.csr ]; then
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Found CA intermediate csr. PKI intermediate engine already mounted. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Found CA intermediate csr. PKI intermediate engine already mounted. Exiting ..."
     exit 1
 fi
 
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Generating intermediate csr ..."
 curl -s --header "X-Vault-Token: $TOKEN" \
     --request POST \
     --data '
@@ -113,69 +111,87 @@ curl -s --header "X-Vault-Token: $TOKEN" \
 
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     rm ./ha-vault/certs/intermediate.csr
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Failed to generate intermediate CA csr. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Failed to generate intermediate CA csr. Exiting ..."
     exit 1
 fi
 
+csr_pem_to_json() {
+    input=$1
+    crt_json=""
+    while IFS= read -r var
+    do
+        if [ "${var}" = "-----END CERTIFICATE REQUEST-----" ]; then
+            crt_json="${crt_json}${var}"
+        else
+            crt_json="${crt_json}${var}\n"
+        fi
+    done < "$input"
+}
 
+csr_pem_to_json ha-vault/certs/intermediate.csr
 
-# 
-# WORK IN PROGRESS 
-# 
-
-echo "[\033[0;32mHigh-Availability Vault\033[0m] Siging intermediate certificate with root certificate ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Signing intermediate certificate with root certificate ..."
 curl -s --header "X-Vault-Token: $TOKEN" \
     --header "Content-Type: application/json" \
     --request POST \
     --data '
     {
-        "csr": "'"@ha-vault/certs/intermediate.csr"'",
+        "csr": "'"${crt_json}"'",
         "format": "pem_bundle",
         "ttl": "43800h"
-        }
-    ' \
+    }' \
     "http://$address/v1/pki/root/sign-intermediate" \
     | jq -r ".data.certificate" > ha-vault/certs/intermediate.cert.pem
 
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     rm ./ha-vault/certs/intermediate.cert.pem
-    echo "[\033[0;31mHigh-Availability Vault\033[0m] Failed to sign intermediate CA certificate. Exiting ..."
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Failed to sign intermediate CA certificate. Exiting ..."
     exit 1
 fi
 
-# jg -r ".data.certificate" > certs/intermediate.cert.pem
+crt_pem_to_json() {
+    input=$1
+    crt_json=""
+    while IFS= read -r var
+    do
+        if [ "${var}" = "-----END CERTIFICATE-----" ]; then
+            crt_json="${crt_json}${var}"
+        else
+            crt_json="${crt_json}${var}\n"
+        fi
+    done < "$input"
+}
 
+crt_pem_to_json ha-vault/certs/intermediate.cert.pem
 
-# intermediate_certificate_as_payload()
-# {
-# cat <<EOF
-# {
-#   "certificate": "$(cat certs/intermediate.cert.pem)"
-# }
-# EOF
-# }
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Setting signed certificate to intermediate CA ..."
+curl -s \
+    -o /dev/null \
+    --header "X-Vault-Token: $TOKEN" \
+    --request POST \
+    --data '
+    {
+    "certificate": "'"$crt_json"'"
+    }' \
+    "http://$address/v1/pki_int/intermediate/set-signed" 
+check_last_cmd_return_code "Setting signed certificate to intermediate CA failed"
 
-# echo "[\033[0;32mHigh-Availability Vault\033[0m] Setting signed certificate to intermediate CA ..."
-# curl --header "X-Vault-Token: $TOKEN" \
-#     --request POST \
-#     --data "$(intermediate_certificate_as_payload)" \
-#     https://127.0.0.1:8201/v1/pki_int/intermediate/set-signed
-# echo ""
+read -p $'\e[34m>>>\e[0m Set endpoint to issue certificate: ' endpoint
+if [ -z "$endpoint" ]; then
+    echo -e "[\033[0;31mHigh-Availability Vault\033[0m] Endpoint not provided. Exiting ..."
+    exit 1
+fi
 
-# example_role_payload()
-# {
-# cat <<EOF
-# {
-#   "allowed_domains": "$DNS",
-#   "allow_subdomains": true,
-#   "max_ttl": "720h"
-# }
-# EOF
-# }
-
-# echo "[\033[0;32mHigh-Availability Vault\033[0m] Creating a role to allow issuing certificate to subdomains *.$DNS ..."
-# curl --header "X-Vault-Token: $TOKEN" \
-#     --request POST \
-#     --data "$(example_role_payload)" \
-#     http://127.0.0.1:8201/v1/pki_int/roles/example-dot-com
-# echo ""
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Creating a role to allow issuing certificate to subdomains *.$DNS ..."
+curl -s -o /dev/null \
+    --header "X-Vault-Token: $TOKEN" \
+    --request POST \
+    --data '
+    {
+        "allowed_domains": "'"$DNS"'",
+        "allow_subdomains": true,
+        "max_ttl": "720h"
+    }
+    ' \
+    "http://$address/v1/pki_int/roles/$endpoint"
+check_last_cmd_return_code "Creation of role to allow issuing certificate to subdomains *.$dns failed"

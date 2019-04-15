@@ -5,9 +5,9 @@ networks:
     external: true
 
 volumes:
-  consul_client_3:
-  consul_server_3:
-  vault_server_3:
+ consul_client_3:
+ consul_server_3:
+ vault_server_3:
 
 services:
 
@@ -23,7 +23,7 @@ services:
       - JOIN3=consul.server3.example.com
       - NODE_NAME=consul.server3
     volumes:
-      - consul_server_3:/consul/data
+     - consul_server_3:/consul/data
     networks:
       haOverlay:
         aliases:
@@ -42,8 +42,8 @@ services:
     ports:
       - 8203:8200
     volumes:
-      - consul_client_3:/consul/data
-      - vault_server_3:/vault/data
+     - consul_client_3:/consul/data
+     - vault_server_3:/vault/data
     networks:
       haOverlay:
         aliases:
