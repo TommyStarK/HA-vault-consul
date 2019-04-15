@@ -188,7 +188,7 @@ curl -s -o /dev/null \
     --request POST \
     --data '
     {
-        "allowed_domains": "'"$DNS"'",
+        "allowed_domains": "'"$dns"'",
         "allow_subdomains": true,
         "max_ttl": "720h"
     }
