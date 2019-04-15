@@ -182,7 +182,7 @@ if [ -z "$endpoint" ]; then
     exit 1
 fi
 
-echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Creating a role to allow issuing certificate to subdomains *.$DNS ..."
+echo -e "[\033[0;32mHigh-Availability Vault\033[0m] Creating a role to allow issuing certificate to subdomains *.$dns ..."
 curl -s -o /dev/null \
     --header "X-Vault-Token: $TOKEN" \
     --request POST \
