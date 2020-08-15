@@ -68,6 +68,6 @@ To do so, run:
 $ ./engine/pki/enable.sh
 ```
 
-**/!\\** You must run an initialized, unsealed and setup HA vault before being able to mount a `PKI` engine.
+:warning: You must run an initialized, unsealed and setup HA vault before being able to mount a `PKI` engine.
 
 You will have to provide an address (ip:port) of one member of the cluster, as well as a dns.
